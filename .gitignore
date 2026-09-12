@@ -1,0 +1,28 @@
+# Archivos de configuración con datos sensibles
+# IMPORTANTE: config.php tiene usuario y contraseña de BD
+# Antes de subir, reemplazá las credenciales reales por placeholders
+
+# Logs
+logs/
+*.log
+
+# Archivos de prueba y temporales
+test_email.php
+debug_bd.php
+ver_bd.php
+setup_bd.php
+init_passwords.php
+
+# Imágenes subidas por usuarios (son datos, no código)
+# Descomenta la siguiente línea si no querés subir las imágenes:
+# uploads/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
