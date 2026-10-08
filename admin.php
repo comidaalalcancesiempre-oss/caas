@@ -72,7 +72,23 @@ $pendientes = array_filter($empresas, fn($e) => $e['estado_aprobacion'] === 'PEN
                     <p class="text-xs text-gray-500">📧 <?= e($emp['email']) ?> · 📞 <?= e($emp['telefono']) ?></p>
                     <p class="text-xs text-gray-500">📍 <?= e($emp['direccion'] ?: '—') ?> · 🕒 <?= e($emp['horarios'] ?: '—') ?></p>
                 </div>
-                <div class="flex gap-2 flex-shrink-0">
+                <div class="flex gap-2 flex-shrink-0 flex-wrap">
+                    <?php
+                    $tel_limpio_adm = preg_replace('/[^0-9]/', '', $emp['telefono'] ?? '');
+                    $wa_adm = urlencode(
+                        "Hola {$emp['nombre']}, somos el equipo de C.A.A.S. 🍔\n\n" .
+                        "Recibimos tu solicitud de registro y necesitamos verificar algunos datos antes de aprobarte.\n\n" .
+                        "¿Podés confirmar:\n- Nombre del local: {$emp['nombre']}\n- Categoría: {$emp['categoria']}\n" .
+                        "- Dirección: {$emp['direccion']}\n\n¡Gracias! Te respondemos a la brevedad. 🙌"
+                    );
+                    ?>
+                    <?php if ($tel_limpio_adm): ?>
+                    <a href="https://wa.me/<?= e($tel_limpio_adm) ?>?text=<?= $wa_adm ?>"
+                       target="_blank" rel="noopener"
+                       class="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-xl transition shadow">
+                        📱 WhatsApp
+                    </a>
+                    <?php endif; ?>
                     <form method="POST">
                         <input type="hidden" name="id_empresa" value="<?= (int)$emp['id_empresa'] ?>">
                         <button name="accion_empresa" value="aprobar"
@@ -182,21 +198,47 @@ const spinner = document.getElementById('spinner');
 
 async function buscar() {
     spinner.classList.remove('hidden');
-    const fd = new FormData(); fd.append('buscar', input.value.trim());
+    const fd = new FormData();
+    fd.append('buscar', input.value.trim());
     try {
-        const r = await fetch('buscar_pedidos.php',{method:'POST',body:fd});
-        if (!r.ok) throw new Error(r.status);
-        const data = await r.json();
+        const r   = await fetch('buscar_pedidos.php', { method: 'POST', body: fd });
+        const txt = await r.text();
         spinner.classList.add('hidden');
+
+        let data;
+        try {
+            data = JSON.parse(txt);
+        } catch {
+            // Respuesta no es JSON válido — mostrar el texto crudo para depurar
+            body.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-500 font-bold text-xs">
+                Error de respuesta: <code>${txt.substring(0, 300)}</code></td></tr>`;
+            return;
+        }
+
+        // Error del servidor con detalle
+        if (data.error) {
+            const msg = data.detalle ? `${data.error}: ${data.detalle}` : data.error;
+            body.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-500 font-bold">${msg}</td></tr>`;
+            return;
+        }
+
         renderizar(Array.isArray(data) ? data : []);
-    } catch {
+
+    } catch (err) {
         spinner.classList.add('hidden');
-        body.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-red-500 font-bold">Error al cargar datos.</td></tr>';
+        body.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-500 font-bold">
+            Error de conexión: ${err.message}</td></tr>`;
     }
 }
 
 function renderizar(rows) {
-    if (!rows.length) { body.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-gray-400">Sin resultados.</td></tr>'; return; }
+    if (!rows.length) {
+        body.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-gray-400 dark:text-gray-500">
+            <p class="text-2xl mb-2">📋</p>
+            <p class="text-sm font-medium">No hay pedidos registrados aún.</p>
+        </td></tr>`;
+        return;
+    }
     body.innerHTML = rows.map(p => {
         const badge = COLORES[p.estado] ?? 'bg-gray-100 text-gray-600';
         const opts  = ESTADOS.map(s=>`<option value="${s}"${s===p.estado?' selected':''}>${s}</option>`).join('');

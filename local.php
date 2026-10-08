@@ -16,23 +16,42 @@ if (!$emp) { header('Location: index.php'); exit; }
 $prods = $conn->prepare("SELECT * FROM producto WHERE id_empresa = ? ORDER BY nombre");
 $prods->execute([$id]);
 $productos = $prods->fetchAll();
+
+// Coordenadas para el mapa
+$tiene_mapa = !empty($emp['latitud']) && !empty($emp['longitud']);
+$lat = (float)($emp['latitud']  ?? -34.9011);
+$lng = (float)($emp['longitud'] ?? -56.1645);
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($emp['nombre']) ?> - C.A.A.S.</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config={darkMode:'class'}</script>
+    <script>const _t=localStorage.getItem('caas_tema')||'light';if(_t==='dark')document.documentElement.classList.add('dark');</script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="lang.js"></script><script src="theme.js"></script>
+    <style>
+        @keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+        .fade-in{animation:fadeInUp .35s ease both}
+        #mapa{ height: 280px; border-radius: 16px; z-index:1; }
+        .leaflet-container { border-radius: 16px; }
+    </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-gray-800">
+<body class="bg-slate-50 dark:bg-gray-950 min-h-screen text-gray-800 dark:text-gray-200 transition-colors duration-300">
 
-<nav class="bg-white border-b sticky top-0 z-50 px-4 sm:px-8 h-14 flex items-center justify-between shadow-sm">
+<!-- NAVBAR -->
+<nav class="bg-white dark:bg-gray-900 border-b dark:border-gray-800 sticky top-0 z-50 px-4 sm:px-8 h-14 flex items-center justify-between shadow-sm">
     <a href="index.php" class="bg-orange-500 text-white font-black text-lg px-3 py-1 rounded-xl">C.A.A.S.</a>
-    <div class="flex items-center gap-3">
-        <a href="index.php" class="text-sm font-bold text-gray-500 hover:text-orange-500 hidden sm:inline">← Volver</a>
+    <div class="flex items-center gap-2">
+        <a href="index.php" class="text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-orange-500 hidden sm:inline">← Volver</a>
+        <button id="btnToggleTema" class="text-xl p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition">🌙</button>
+        <a href="ajustes.php" class="text-xl p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition">⚙️</a>
         <?php if (isset($_SESSION['user_id'])): ?>
-            <span class="text-xs font-bold text-gray-600 hidden sm:inline"><?= e($_SESSION['nombre']) ?></span>
+            <a href="perfil.php" class="text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-orange-500 hidden sm:inline"><?= e($_SESSION['nombre']) ?></a>
             <a href="logout.php" class="text-xs font-bold bg-red-500 text-white px-3 py-1.5 rounded-xl hover:bg-red-600 transition">Salir</a>
         <?php else: ?>
             <a href="login.php" class="text-xs font-bold text-orange-500 border border-orange-400 px-3 py-1.5 rounded-xl hover:bg-orange-50 transition">Login</a>
@@ -40,17 +59,22 @@ $productos = $prods->fetchAll();
     </div>
 </nav>
 
-<!-- Cabecera local -->
-<header class="bg-white border-b py-8 px-4">
-    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center sm:items-start gap-5">
+<!-- CABECERA DEL LOCAL -->
+<header class="bg-white dark:bg-gray-900 border-b dark:border-gray-800 py-8 px-4">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center sm:items-start gap-5 fade-in">
         <img src="uploads/<?= e($emp['logo']) ?>"
-             class="w-24 h-24 rounded-3xl object-cover border shadow bg-gray-50 flex-shrink-0"
-             onerror="this.src='https://placehold.co/96x96/f97316/white?text=?'"
+             class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover border dark:border-gray-700 shadow bg-gray-50 dark:bg-gray-800 flex-shrink-0"
+             onerror="this.src='https://placehold.co/112x112/f97316/white?text=?'"
              alt="<?= e($emp['nombre']) ?>">
-        <div class="text-center sm:text-left space-y-2">
-            <h1 class="text-2xl sm:text-3xl font-black text-gray-900"><?= e($emp['nombre']) ?></h1>
-            <span class="inline-block bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-lg"><?= e($emp['categoria']) ?></span>
-            <div class="text-xs text-gray-500 space-y-1 pt-1">
+        <div class="space-y-2 text-center sm:text-left">
+            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white"><?= e($emp['nombre']) ?></h1>
+            <span class="inline-block bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-xs font-bold px-3 py-1 rounded-lg">
+                <?= e($emp['categoria']) ?>
+            </span>
+            <?php if ($emp['descripcion']): ?>
+                <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md"><?= e($emp['descripcion']) ?></p>
+            <?php endif; ?>
+            <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1 pt-1">
                 <?php if ($emp['direccion']): ?>
                     <p>📍 <?= e($emp['direccion']) ?></p>
                 <?php endif; ?>
@@ -59,7 +83,7 @@ $productos = $prods->fetchAll();
                 <?php endif; ?>
                 <?php if ($emp['telefono']): ?>
                     <p>📞 <a href="https://wa.me/<?= e(preg_replace('/\D/','',$emp['telefono'])) ?>"
-                             class="text-emerald-600 font-bold hover:underline" target="_blank">
+                             class="text-emerald-600 dark:text-emerald-400 font-bold hover:underline" target="_blank">
                         <?= e($emp['telefono']) ?>
                     </a></p>
                 <?php endif; ?>
@@ -67,63 +91,120 @@ $productos = $prods->fetchAll();
         </div>
         <div class="sm:ml-auto text-center flex-shrink-0">
             <span class="text-3xl font-black text-orange-500"><?= count($productos) ?></span>
-            <p class="text-xs text-gray-400">plato<?= count($productos) !== 1 ? 's' : '' ?></p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">plato<?= count($productos) !== 1 ? 's' : '' ?></p>
         </div>
     </div>
 </header>
 
-<main class="max-w-5xl mx-auto px-4 py-8">
-    <h2 class="text-xl font-bold text-gray-800 mb-6">Menú</h2>
+<main class="max-w-5xl mx-auto px-4 py-8 space-y-8">
 
-    <?php if (empty($productos)): ?>
-        <div class="bg-white rounded-2xl border border-dashed p-12 text-center text-gray-400">
-            <p class="text-4xl mb-3">🍽️</p>
-            <p>Este local aún no publicó platos.</p>
-        </div>
-    <?php else: ?>
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            <?php foreach ($productos as $p): ?>
-            <div class="bg-white rounded-2xl p-4 border flex flex-col shadow-sm hover:shadow-md transition">
-                <img src="uploads/<?= e($p['imagen']) ?>"
-                     class="w-full h-36 sm:h-44 object-cover rounded-xl mb-3 bg-gray-50"
-                     onerror="this.src='https://placehold.co/300x200/f1f5f9/94a3b8?text=Sin+imagen'"
-                     alt="<?= e($p['nombre']) ?>">
-                <div class="flex-1">
-                    <h3 class="font-bold text-sm sm:text-base text-gray-800"><?= e($p['nombre']) ?></h3>
-                    <p class="text-xs text-gray-500 line-clamp-2 mt-1"><?= e($p['descripcion'] ?? '') ?></p>
-                </div>
-                <div class="flex justify-between items-center mt-4 pt-3 border-t">
-                    <span class="text-lg font-black text-gray-900">$<?= number_format((float)$p['precio'], 2) ?></span>
-                    <button onclick="abrirModal(<?= (int)$p['id_producto'] ?>, <?= (int)$emp['id_empresa'] ?>, '<?= addslashes(e($p['nombre'])) ?>', <?= (float)$p['precio'] ?>)"
-                            class="bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow">
-                        Pedir
-                    </button>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
+    <!-- MAPA LEAFLET -->
+    <?php if ($tiene_mapa): ?>
+    <section class="bg-white dark:bg-gray-900 rounded-3xl border dark:border-gray-800 p-5 shadow-sm fade-in">
+        <h2 class="font-bold text-base text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+            📍 Ubicación del local
+        </h2>
+        <div id="mapa" class="w-full border dark:border-gray-700 shadow-sm"></div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            <a href="https://www.google.com/maps?q=<?= $lat ?>,<?= $lng ?>"
+               target="_blank" class="text-orange-500 hover:underline font-bold">
+                Abrir en Google Maps →
+            </a>
+        </p>
+    </section>
     <?php endif; ?>
+
+    <!-- MENÚ DE PLATOS -->
+    <section>
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-5">Menú</h2>
+
+        <?php if (empty($productos)): ?>
+            <div class="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-800 border-dashed p-12 text-center text-gray-400 dark:text-gray-500">
+                <p class="text-4xl mb-3">🍽️</p>
+                <p>Este local aún no publicó platos.</p>
+            </div>
+        <?php else: ?>
+            <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                <?php foreach ($productos as $i => $p): ?>
+                <div class="bg-white dark:bg-gray-900 rounded-2xl p-4 border dark:border-gray-800 flex flex-col shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 fade-in"
+                     style="animation-delay:<?= $i * 0.05 ?>s;opacity:0;animation-fill-mode:forwards">
+                    <img src="uploads/<?= e($p['imagen']) ?>"
+                         class="w-full h-36 sm:h-44 object-cover rounded-xl mb-3 bg-gray-50 dark:bg-gray-800"
+                         onerror="this.src='https://placehold.co/300x200/f1f5f9/94a3b8?text=Sin+imagen'"
+                         alt="<?= e($p['nombre']) ?>"
+                         loading="lazy">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-sm sm:text-base text-gray-800 dark:text-gray-100"><?= e($p['nombre']) ?></h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1"><?= e($p['descripcion'] ?? '') ?></p>
+                    </div>
+                    <div class="flex justify-between items-center mt-4 pt-3 border-t dark:border-gray-800">
+                        <span class="text-lg font-black text-gray-900 dark:text-white">$<?= number_format((float)$p['precio'], 2) ?></span>
+                        <button onclick="abrirModal(<?= (int)$p['id_producto'] ?>,<?= (int)$emp['id_empresa'] ?>,'<?= addslashes(e($p['nombre'])) ?>',<?= (float)$p['precio'] ?>)"
+                                class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow">
+                            Pedir
+                        </button>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
 </main>
 
-<!-- Modal pedido (idéntico al de index.php) -->
-<div id="modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-        <h3 id="mNombre" class="text-xl font-black text-gray-800"></h3>
-        <p  id="mPrecio"  class="text-lg font-bold text-orange-500"></p>
-        <textarea id="mNotas" rows="3" maxlength="300" placeholder="Aclaraciones opcionales..."
-                  class="w-full p-3 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-400 resize-none"></textarea>
+<!-- MODAL PEDIDO -->
+<div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-gray-900 rounded-3xl p-6 max-w-md w-full shadow-2xl border dark:border-gray-700 space-y-4">
+        <h3 id="mNombre" class="text-xl font-black text-gray-800 dark:text-white"></h3>
+        <p  id="mPrecio" class="text-lg font-bold text-orange-500"></p>
+        <textarea id="mNotas" rows="3" maxlength="300"
+                  placeholder="Aclaraciones opcionales (sin cebolla, extra queso...)"
+                  class="w-full p-3 border dark:border-gray-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-400 resize-none bg-gray-50 dark:bg-gray-800 dark:text-white"></textarea>
         <div id="mFeedback" class="hidden text-xs font-bold text-center p-2 rounded-xl"></div>
         <div class="flex gap-3">
-            <button onclick="cerrarModal()" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 text-sm">Cancelar</button>
-            <button id="mBtn" onclick="enviarPedido()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl shadow text-sm">✓ Confirmar</button>
+            <button onclick="cerrarModal()"
+                    class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-sm">Cancelar</button>
+            <button id="mBtn" onclick="enviarPedido()"
+                    class="flex-1 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold py-3 rounded-xl shadow text-sm transition">✓ Confirmar</button>
         </div>
         <?php if (!isset($_SESSION['id_cliente'])): ?>
-            <p class="text-xs text-center text-amber-600 bg-amber-50 p-2 rounded-xl">
+            <p class="text-xs text-center text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-xl">
                 ⚠️ <a href="login.php" class="font-bold underline">Iniciá sesión</a> para pedir.
             </p>
         <?php endif; ?>
     </div>
 </div>
+
+<!-- Leaflet JS -->
+<?php if ($tiene_mapa): ?>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const lat = <?= $lat ?>;
+    const lng = <?= $lng ?>;
+    const map = L.map('mapa', { zoomControl: true, scrollWheelZoom: false }).setView([lat, lng], 16);
+
+    // OpenStreetMap tiles — gratis, sin API key
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+    }).addTo(map);
+
+    // Marcador personalizado del local
+    const iconoLocal = L.divIcon({
+        html: '<div style="background:#f97316;color:white;font-size:22px;width:42px;height:42px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 3px 12px rgba(0,0,0,0.3)"><span style="transform:rotate(45deg)">🍔</span></div>',
+        iconSize: [42, 42],
+        iconAnchor: [21, 42],
+        popupAnchor: [0, -46],
+        className: '',
+    });
+
+    L.marker([lat, lng], { icon: iconoLocal })
+     .addTo(map)
+     .bindPopup(`<strong><?= addslashes(e($emp['nombre'])) ?></strong><br><small><?= addslashes(e($emp['direccion'] ?? '')) ?></small>`)
+     .openPopup();
+});
+</script>
+<?php endif; ?>
 
 <script>
 let _prod = {};
@@ -133,17 +214,17 @@ function abrirModal(id, idEmp, nombre, precio) {
     document.getElementById('mPrecio').textContent = '$ ' + precio.toFixed(2);
     document.getElementById('mNotas').value = '';
     document.getElementById('mFeedback').className = 'hidden text-xs font-bold text-center p-2 rounded-xl';
-    document.getElementById('mBtn').disabled = false;
-    document.getElementById('mBtn').textContent = '✓ Confirmar';
+    const btn = document.getElementById('mBtn');
+    btn.disabled = false; btn.textContent = '✓ Confirmar';
     document.getElementById('modal').classList.replace('hidden','flex');
 }
 function cerrarModal() { document.getElementById('modal').classList.replace('flex','hidden'); }
-document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) cerrarModal(); });
+document.getElementById('modal').addEventListener('click', e => { if(e.target===e.currentTarget) cerrarModal(); });
 
 async function enviarPedido() {
     const btn = document.getElementById('mBtn');
     const fb  = document.getElementById('mFeedback');
-    btn.disabled = true; btn.textContent = 'Enviando...';
+    btn.disabled = true; btn.textContent = 'Procesando...';
     const fd = new FormData();
     fd.append('id_producto', _prod.id);
     fd.append('id_empresa',  _prod.idEmp);
@@ -155,15 +236,16 @@ async function enviarPedido() {
         fb.textContent = d.message;
         if (d.status === 'success') {
             setTimeout(() => {
-                const msg = `Hola! Pedido desde C.A.A.S.\n*Producto:* ${_prod.nombre}\n*Total:* $${_prod.precio.toFixed(2)}\n${document.getElementById('mNotas').value ? '*Notas:* '+document.getElementById('mNotas').value : ''}`;
+                const notas = document.getElementById('mNotas').value;
+                const msg = `Hola! Pedido desde C.A.A.S.\n*Producto:* ${_prod.nombre}\n*Total:* $${_prod.precio.toFixed(2)}${notas?'\n*Notas:* '+notas:''}`;
                 window.open(`https://wa.me/${d.telefono}?text=${encodeURIComponent(msg)}`, '_blank');
                 cerrarModal();
             }, 1200);
-        } else { btn.disabled = false; btn.textContent = '✓ Confirmar'; }
+        } else { btn.disabled=false; btn.textContent='✓ Confirmar'; }
     } catch {
-        fb.className = 'text-xs font-bold text-center p-2 rounded-xl bg-red-100 text-red-700';
-        fb.textContent = 'Error de conexión.';
-        btn.disabled = false; btn.textContent = '✓ Confirmar';
+        fb.className='text-xs font-bold text-center p-2 rounded-xl bg-red-100 text-red-700';
+        fb.textContent='Error de conexión.';
+        btn.disabled=false; btn.textContent='✓ Confirmar';
     }
 }
 </script>
