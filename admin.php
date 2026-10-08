@@ -5,19 +5,58 @@ if (!isset($_SESSION['tipo']) || $_SESSION['tipo'] !== 'ADMIN') {
     header('Location: login.php'); exit;
 }
 
-$flash = '';
+$flash      = '';
+$flash_tipo = 'ok';
 
 // ── Aprobar / Rechazar empresa ─────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion_empresa'])) {
-    $id  = filter_input(INPUT_POST, 'id_empresa', FILTER_VALIDATE_INT);
-    $acc = $_POST['accion_empresa'];
-    if ($id && in_array($acc, ['aprobar','rechazar'], true)) {
-        $estado = $acc === 'aprobar' ? 'APROBADO' : 'RECHAZADO';
-        $conn->prepare("UPDATE empresa SET estado_aprobacion = ? WHERE id_empresa = ?")
-             ->execute([$estado, $id]);
-        $flash = $acc === 'aprobar' ? '✓ Empresa aprobada.' : '✓ Empresa rechazada.';
+    if (!csrfValidar()) { $flash = 'Solicitud inválida.'; $flash_tipo = 'err'; }
+    else {
+        $id  = filter_input(INPUT_POST, 'id_empresa', FILTER_VALIDATE_INT);
+        $acc = $_POST['accion_empresa'];
+        if ($id && in_array($acc, ['aprobar','rechazar'], true)) {
+            $estado = $acc === 'aprobar' ? 'APROBADO' : 'RECHAZADO';
+            $conn->prepare("UPDATE empresa SET estado_aprobacion = ? WHERE id_empresa = ?")
+                 ->execute([$estado, $id]);
+            $flash = $acc === 'aprobar' ? '✓ Empresa aprobada.' : '✓ Empresa rechazada.';
+        }
     }
 }
+
+// ── Gestión de usuarios (bloquear/activar/eliminar) ────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion_usuario'])) {
+    if (!csrfValidar()) { $flash = 'Solicitud inválida.'; $flash_tipo = 'err'; }
+    else {
+        $id_usr  = filter_input(INPUT_POST, 'id_usuario_acc', FILTER_VALIDATE_INT);
+        $acc_usr = $_POST['accion_usuario'];
+
+        // No permitir que el admin se afecte a sí mismo
+        if ($id_usr && $id_usr !== (int)$_SESSION['user_id']) {
+            if ($acc_usr === 'bloquear') {
+                $conn->prepare("UPDATE usuario SET estado = 'BLOQUEADO' WHERE id_usuario = ?")
+                     ->execute([$id_usr]);
+                $flash = '✓ Usuario bloqueado.';
+            } elseif ($acc_usr === 'activar') {
+                $conn->prepare("UPDATE usuario SET estado = 'ACTIVO' WHERE id_usuario = ?")
+                     ->execute([$id_usr]);
+                $flash = '✓ Usuario activado.';
+            } elseif ($acc_usr === 'eliminar') {
+                // Eliminar en cascada (FK ON DELETE CASCADE se encarga de cliente/empresa)
+                $conn->prepare("DELETE FROM usuario WHERE id_usuario = ? AND tipo != 'ADMIN'")
+                     ->execute([$id_usr]);
+                $flash = '✓ Usuario eliminado.';
+            }
+        } else {
+            $flash = 'No podés modificar tu propia cuenta desde aquí.'; $flash_tipo = 'warn';
+        }
+    }
+}
+
+// ── Agregar columna estado a usuario si no existe ──────────────────
+// (por si no se ejecutó el update SQL todavía)
+try {
+    $conn->exec("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS estado VARCHAR(20) NOT NULL DEFAULT 'ACTIVO'");
+} catch (PDOException $e) { /* ya existe, ignorar */ }
 
 // ── Cargar empresas ────────────────────────────────────────────────
 $empresas = $conn->query(
@@ -25,8 +64,29 @@ $empresas = $conn->query(
      JOIN usuario u ON e.id_usuario = u.id_usuario
      ORDER BY FIELD(e.estado_aprobacion,'PENDIENTE','APROBADO','RECHAZADO'), e.nombre"
 )->fetchAll();
-
 $pendientes = array_filter($empresas, fn($e) => $e['estado_aprobacion'] === 'PENDIENTE');
+
+// ── Cargar todos los usuarios ──────────────────────────────────────
+$todos_usuarios = $conn->query(
+    "SELECT u.id_usuario, u.email, u.telefono, u.tipo,
+            COALESCE(u.estado, 'ACTIVO') AS estado,
+            COALESCE(c.nombre, e.nombre, 'Sin nombre') AS nombre
+     FROM   usuario u
+     LEFT JOIN cliente c ON u.id_usuario = c.id_usuario AND u.tipo != 'EMPRESA'
+     LEFT JOIN empresa e ON u.id_usuario = e.id_usuario AND u.tipo  = 'EMPRESA'
+     ORDER BY u.tipo, nombre"
+)->fetchAll();
+
+// ── Estadísticas rápidas ───────────────────────────────────────────
+$stats = $conn->query(
+    "SELECT
+        (SELECT COUNT(*) FROM usuario WHERE tipo='CLIENTE') AS total_clientes,
+        (SELECT COUNT(*) FROM usuario WHERE tipo='EMPRESA') AS total_empresas,
+        (SELECT COUNT(*) FROM empresa WHERE estado_aprobacion='PENDIENTE') AS empresas_pendientes,
+        (SELECT COUNT(*) FROM pedido)  AS total_pedidos,
+        (SELECT COUNT(*) FROM pedido WHERE estado='Pendiente') AS pedidos_pendientes,
+        (SELECT COUNT(*) FROM producto) AS total_productos"
+)->fetch();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -53,8 +113,27 @@ $pendientes = array_filter($empresas, fn($e) => $e['estado_aprobacion'] === 'PEN
 <main class="max-w-6xl mx-auto p-4 sm:p-6 space-y-8">
 
     <?php if ($flash): ?>
-        <div class="bg-green-100 text-green-700 border border-green-200 p-3 rounded-xl text-sm font-bold"><?= e($flash) ?></div>
+        <div class="<?= $flash_tipo==='err'?'bg-red-100 dark:bg-red-900/30 text-red-700':($flash_tipo==='warn'?'bg-amber-100 dark:bg-amber-900/30 text-amber-700':'bg-green-100 dark:bg-green-900/30 text-green-700') ?> border p-3 rounded-xl text-sm font-bold"><?= e($flash) ?></div>
     <?php endif; ?>
+
+    <!-- ── ESTADÍSTICAS RÁPIDAS ──────────────────────────────────── -->
+    <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <?php
+        $cards = [
+            ['👥', 'Clientes',          $stats['total_clientes'],      'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300'],
+            ['🏪', 'Empresas',          $stats['total_empresas'],      'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'],
+            ['⏳', 'Pend. aprobación',  $stats['empresas_pendientes'], 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'],
+            ['📦', 'Pedidos totales',   $stats['total_pedidos'],       'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300'],
+            ['🕐', 'Pedidos pend.',     $stats['pedidos_pendientes'],  'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'],
+            ['🍽️', 'Productos',         $stats['total_productos'],     'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'],
+        ];
+        foreach ($cards as [$icon, $label, $val, $cls]): ?>
+        <div class="<?= $cls ?> rounded-2xl p-4 text-center border border-current/10">
+            <p class="text-2xl font-black"><?= (int)$val ?></p>
+            <p class="text-xs font-bold mt-0.5 opacity-80"><?= $icon ?> <?= $label ?></p>
+        </div>
+        <?php endforeach; ?>
+    </section>
 
     <!-- ── EMPRESAS PENDIENTES ──────────────────────────────────── -->
     <?php if (!empty($pendientes)): ?>
@@ -90,11 +169,13 @@ $pendientes = array_filter($empresas, fn($e) => $e['estado_aprobacion'] === 'PEN
                     </a>
                     <?php endif; ?>
                     <form method="POST">
+                        <?= csrfField() ?>
                         <input type="hidden" name="id_empresa" value="<?= (int)$emp['id_empresa'] ?>">
                         <button name="accion_empresa" value="aprobar"
                                 class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition">✓ Aprobar</button>
                     </form>
                     <form method="POST" onsubmit="return confirm('¿Rechazar esta empresa?')">
+                        <?= csrfField() ?>
                         <input type="hidden" name="id_empresa" value="<?= (int)$emp['id_empresa'] ?>">
                         <button name="accion_empresa" value="rechazar"
                                 class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition">✕ Rechazar</button>
@@ -184,7 +265,108 @@ $pendientes = array_filter($empresas, fn($e) => $e['estado_aprobacion'] === 'PEN
         </div>
     </section>
 
+    <!-- ── GESTIÓN DE TODOS LOS USUARIOS ──────────────────────── -->
+    <section class="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-800 overflow-hidden shadow-sm">
+        <div class="px-5 py-4 border-b dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <h2 class="font-black text-lg text-gray-800 dark:text-white">Gestión de Usuarios</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400"><?= count($todos_usuarios) ?> usuarios registrados</p>
+            </div>
+            <!-- Filtro rápido -->
+            <input type="text" id="filtroUsuarios" placeholder="Filtrar por nombre, email, tipo..."
+                   oninput="filtrarUsuarios()"
+                   class="p-2.5 border dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-sky-400 bg-white dark:bg-gray-800 dark:text-white w-full sm:w-64">
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left" id="tablaUsuarios">
+                <thead class="bg-gray-50 dark:bg-gray-800/50 border-b dark:border-gray-800 text-gray-600 dark:text-gray-400 font-bold uppercase tracking-wide">
+                    <tr>
+                        <th class="p-3">ID</th>
+                        <th class="p-3">Nombre</th>
+                        <th class="p-3">Email</th>
+                        <th class="p-3">Teléfono</th>
+                        <th class="p-3 text-center">Tipo</th>
+                        <th class="p-3 text-center">Estado</th>
+                        <th class="p-3 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y dark:divide-gray-800">
+                    <?php foreach ($todos_usuarios as $usr):
+                        $estado_usr = $usr['estado'] ?? 'ACTIVO';
+                        $tipo_badge = [
+                            'ADMIN'   => 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300',
+                            'EMPRESA' => 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300',
+                            'CLIENTE' => 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300',
+                        ][$usr['tipo']] ?? 'bg-gray-100 text-gray-600';
+                        $estado_badge = $estado_usr === 'ACTIVO'
+                            ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                            : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300';
+                        $es_yo = ((int)$usr['id_usuario'] === (int)$_SESSION['user_id']);
+                    ?>
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition usuario-fila"
+                        data-buscar="<?= strtolower(e($usr['nombre'].' '.$usr['email'].' '.$usr['tipo'])) ?>">
+                        <td class="p-3 font-bold text-gray-500 dark:text-gray-400">#<?= (int)$usr['id_usuario'] ?></td>
+                        <td class="p-3 font-bold text-gray-900 dark:text-white"><?= e($usr['nombre']) ?></td>
+                        <td class="p-3 text-gray-600 dark:text-gray-400"><?= e($usr['email']) ?></td>
+                        <td class="p-3 text-gray-600 dark:text-gray-400"><?= e($usr['telefono']) ?></td>
+                        <td class="p-3 text-center">
+                            <span class="<?= $tipo_badge ?> px-2 py-0.5 rounded-full font-bold"><?= e($usr['tipo']) ?></span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <span class="<?= $estado_badge ?> px-2 py-0.5 rounded-full font-bold"><?= e($estado_usr) ?></span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <?php if ($es_yo): ?>
+                                <span class="text-xs text-gray-400 italic">(tu cuenta)</span>
+                            <?php elseif ($usr['tipo'] !== 'ADMIN'): ?>
+                                <div class="flex items-center justify-center gap-2 flex-wrap">
+                                    <?php if ($estado_usr === 'BLOQUEADO'): ?>
+                                        <form method="POST" class="inline">
+                                            <?= csrfField() ?>
+                                            <input type="hidden" name="id_usuario_acc" value="<?= (int)$usr['id_usuario'] ?>">
+                                            <button name="accion_usuario" value="activar"
+                                                    class="text-green-600 dark:text-green-400 hover:underline font-bold">Activar</button>
+                                        </form>
+                                    <?php else: ?>
+                                        <form method="POST" class="inline">
+                                            <?= csrfField() ?>
+                                            <input type="hidden" name="id_usuario_acc" value="<?= (int)$usr['id_usuario'] ?>">
+                                            <button name="accion_usuario" value="bloquear"
+                                                    class="text-amber-600 dark:text-amber-400 hover:underline font-bold">Bloquear</button>
+                                        </form>
+                                    <?php endif; ?>
+                                    <form method="POST" class="inline"
+                                          onsubmit="return confirm('¿Eliminar permanentemente a <?= addslashes(e($usr['nombre'])) ?>? Esto no se puede deshacer.')">
+                                        <?= csrfField() ?>
+                                        <input type="hidden" name="id_usuario_acc" value="<?= (int)$usr['id_usuario'] ?>">
+                                        <button name="accion_usuario" value="eliminar"
+                                                class="text-red-500 dark:text-red-400 hover:underline font-bold">Eliminar</button>
+                                    </form>
+                                </div>
+                            <?php else: ?>
+                                <span class="text-xs text-gray-400">—</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
 </main>
+
+<script>
+// Filtro de usuarios en tiempo real
+function filtrarUsuarios() {
+    const q = document.getElementById('filtroUsuarios').value.toLowerCase();
+    document.querySelectorAll('.usuario-fila').forEach(fila => {
+        const coincide = fila.getAttribute('data-buscar').includes(q);
+        fila.style.display = coincide ? '' : 'none';
+    });
+}
+</script>
 
 <script>
 const ESTADOS = ['Pendiente','En preparación','En camino','Entregado','Cancelado'];

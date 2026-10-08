@@ -34,13 +34,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrfValidar()) {
         $msg = 'Solicitud inválida.'; $msg_tipo = 'err';
     } else {
-        $telefono = trim(filter_input(INPUT_POST,'telefono',FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
+        $telefono_nuevo = trim(filter_input(INPUT_POST,'telefono',FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
+        $telefono_viejo = $perfil['telefono'];
+        $cambio_telefono = $telefono_nuevo !== $telefono_viejo;
 
-        if ($telefono && !preg_match('/^[0-9\+\-\s]{6,20}$/', $telefono)) {
-            $msg = 'Teléfono inválido.'; $msg_tipo = 'err';
-        } else {
-            $conn->prepare("UPDATE usuario SET telefono = ? WHERE id_usuario = ?")
-                 ->execute([$telefono, $id_usuario]);
+        // Si el teléfono cambió, verificar contraseña actual
+        if ($cambio_telefono) {
+            $pass_confirmacion = $_POST['confirmar_pass'] ?? '';
+            // Obtener hash según tipo
+            if ($tipo === 'EMPRESA') {
+                $stmt_h = $conn->prepare("SELECT contrasena FROM empresa WHERE id_usuario = ?");
+            } else {
+                $stmt_h = $conn->prepare("SELECT contrasena FROM cliente WHERE id_usuario = ?");
+            }
+            $stmt_h->execute([$id_usuario]);
+            $hash_actual = $stmt_h->fetchColumn();
+
+            if (!$pass_confirmacion || !password_verify($pass_confirmacion, $hash_actual)) {
+                $msg = 'Contraseña incorrecta. No se pudo cambiar el teléfono.';
+                $msg_tipo = 'err';
+                $cambio_telefono = false; // bloquear el cambio
+                $telefono_nuevo  = $telefono_viejo; // revertir al valor anterior
+            }
+        }
+
+        if ($msg_tipo !== 'err') {
+            if ($telefono_nuevo && !preg_match('/^[0-9\+\-\s]{6,20}$/', $telefono_nuevo)) {
+                $msg = 'Teléfono inválido.'; $msg_tipo = 'err';
+            } else {
+                $conn->prepare("UPDATE usuario SET telefono = ? WHERE id_usuario = ?")
+                     ->execute([$telefono_nuevo, $id_usuario]);
 
             if ($tipo === 'CLIENTE') {
                 $nombre   = trim(filter_input(INPUT_POST,'nombre',  FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
@@ -59,7 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $latitud   = filter_input(INPUT_POST,'latitud',  FILTER_VALIDATE_FLOAT) ?: null;
                 $longitud  = filter_input(INPUT_POST,'longitud', FILTER_VALIDATE_FLOAT) ?: null;
 
-                // Subir logo
                 $logo = $perfil['logo'];
                 if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
                     $tmp  = $_FILES['logo']['tmp_name'];
@@ -80,9 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $msg = '¡Perfil actualizado correctamente!'; $msg_tipo = 'ok';
-            // Recargar datos actualizados
             header('Location: perfil.php?ok=1'); exit;
-        }
+            } // cierre if !err validación teléfono
+        } // cierre if !err contraseña
     }
 }
 ?>
@@ -163,9 +185,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        class="w-full p-3 border dark:border-gray-700 rounded-xl text-sm bg-gray-50 dark:bg-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-400">
             </div>
             <div>
-                <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">Teléfono / WhatsApp</label>
-                <input type="tel" name="telefono" value="<?= e($perfil['telefono'] ?? '') ?>"
+                <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">
+                    Teléfono / WhatsApp
+                    <span class="text-orange-500 font-normal ml-1">🔒 requiere contraseña para cambiar</span>
+                </label>
+                <input type="tel" name="telefono" id="inputTelefono"
+                       value="<?= e($perfil['telefono'] ?? '') ?>"
+                       onchange="verificarCambioTelefono(this.value)"
                        class="w-full p-3 border dark:border-gray-700 rounded-xl text-sm bg-gray-50 dark:bg-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-400">
+            </div>
+
+            <!-- Campo de confirmación de contraseña — aparece solo si cambia el teléfono -->
+            <div id="bloqueConfirmarPass" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 space-y-2">
+                <p class="text-xs font-bold text-amber-800 dark:text-amber-300">
+                    🔒 Estás cambiando tu número de teléfono. Confirmá tu contraseña actual para continuar.
+                </p>
+                <div class="relative">
+                    <input type="password" name="confirmar_pass" id="confirmarPass"
+                           placeholder="Contraseña actual *"
+                           class="w-full p-3 border border-amber-300 dark:border-amber-700 rounded-xl text-sm bg-white dark:bg-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-amber-400 pr-11">
+                    <button type="button"
+                            onclick="const i=document.getElementById('confirmarPass');i.type=i.type==='password'?'text':'password'"
+                            class="absolute right-3 top-3 text-gray-400 hover:text-gray-600 text-base">👁</button>
+                </div>
             </div>
         </div>
 
@@ -277,3 +319,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </main>
 </body>
 </html>
+
+<script>
+// Teléfono original al cargar la página
+const telefonoOriginal = document.getElementById('inputTelefono')?.value || '';
+
+function verificarCambioTelefono(nuevoValor) {
+    const bloque = document.getElementById('bloqueConfirmarPass');
+    const input  = document.getElementById('confirmarPass');
+    if (!bloque) return;
+
+    if (nuevoValor.trim() !== telefonoOriginal.trim()) {
+        // El teléfono cambió — mostrar campo de contraseña y hacerlo requerido
+        bloque.classList.remove('hidden');
+        input.required = true;
+    } else {
+        // Volvió al valor original — ocultar y quitar requerido
+        bloque.classList.add('hidden');
+        input.required = false;
+        input.value = '';
+    }
+}
+</script>

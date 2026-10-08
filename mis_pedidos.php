@@ -10,8 +10,8 @@ $id_cliente = (int)$_SESSION['id_cliente'];
 // Cargar pedidos del cliente con datos de la empresa
 $stmt = $conn->prepare(
     "SELECT p.id_pedido, p.detalle, p.costo, p.estado, p.fecha_hora,
-            e.nombre AS nombre_empresa, e.logo, e.telefono AS tel_empresa,
-            u.telefono
+            e.nombre AS nombre_empresa, e.logo,
+            u.telefono AS tel_empresa
      FROM   pedido  p
      JOIN   empresa e ON p.id_empresa = e.id_empresa
      JOIN   usuario u ON e.id_usuario = u.id_usuario
@@ -96,7 +96,7 @@ $iconos = [
             <?php foreach ($pedidos as $i => $p):
                 $badge = $colores[$p['estado']] ?? 'bg-gray-100 text-gray-600';
                 $icono = $iconos[$p['estado']] ?? '📦';
-                $tel_limpio = preg_replace('/[^0-9]/', '', $p['tel_empresa'] ?? $p['telefono'] ?? '');
+                $tel_limpio = preg_replace('/[^0-9]/', '', $p['tel_empresa'] ?? '');
                 $wa_msg = "Hola! Quisiera consultar sobre mi pedido #{$p['id_pedido']} — {$p['detalle']}";
             ?>
             <div class="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-800 p-5 shadow-sm fade-in"
