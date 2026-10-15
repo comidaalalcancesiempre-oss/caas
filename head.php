@@ -1,7 +1,6 @@
 <?php
 /**
  * C.A.A.S. — Cabecera HTML compartida
- * Incluir en cada página con: require_once 'head.php';
  * Variables esperadas antes de incluir:
  *   $pageTitle (string) — título de la pestaña
  *   $extraHead (string) — HTML adicional opcional (ej: Leaflet CSS)
@@ -18,13 +17,11 @@ $extraHead = $extraHead ?? '';
 <script>tailwind.config = { darkMode: 'class' }</script>
 
 <!-- ── Bootstrap 5.3 CSS ────────────────────────────────────────── -->
-<!-- Se usa para: tooltips, badges, utilidades de grid y componentes -->
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       crossorigin="anonymous">
 
 <!-- ── Animate.css ──────────────────────────────────────────────── -->
-<!-- Clases: animate__animated animate__fadeInUp, animate__bounceIn, etc. -->
 <link rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
       crossorigin="anonymous">
@@ -33,35 +30,33 @@ $extraHead = $extraHead ?? '';
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
-<!-- ── Tema C.A.A.S. — dark mode aplicado antes del paint ───────── -->
+<!-- ── Google Translate (carga async, sin bloquear el render) ─────
+     El div #google_translate_element queda oculto con CSS.
+     Nuestros botones en ajustes.php/navbar llaman a switchGoogleLang()
+     para controlar el idioma de forma programática.
+──────────────────────────────────────────────────────────────────── -->
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+        async defer></script>
+
+<!-- ── Tema dark/light — aplicar ANTES del paint para evitar flash ─ -->
 <script>
-    (function() {
-        const t = localStorage.getItem('caas_tema') || 'light';
-        if (t === 'dark') document.documentElement.classList.add('dark');
-    })();
+(function() {
+    const t = localStorage.getItem('caas_tema') || 'light';
+    if (t === 'dark') document.documentElement.classList.add('dark');
+})();
 </script>
 
 <!-- ── Estilos globales C.A.A.S. ────────────────────────────────── -->
 <style>
-    /* Variables de color para consistencia */
     :root {
-        --caas-orange:     #f97316;
-        --caas-orange-dk:  #ea6c0a;
-        --caas-bg-light:   #f8fafc;
-        --caas-bg-dark:    #030712;
+        --caas-orange:    #f97316;
+        --caas-orange-dk: #ea6c0a;
     }
 
     /* Scrollbar personalizada */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #f97316; border-radius: 99px; }
-
-    /* Prevenir flash de Tailwind CDN */
-    [x-cloak] { display: none !important; }
-
-    /* Override Bootstrap para que no choque con Tailwind dark mode */
-    .dark body   { background-color: var(--caas-bg-dark) !important; }
-    .dark .card  { background-color: #111827 !important; border-color: #1f2937 !important; }
+    ::-webkit-scrollbar-thumb { background: var(--caas-orange); border-radius: 99px; }
 
     /* Botón naranja global */
     .btn-caas {
@@ -75,7 +70,7 @@ $extraHead = $extraHead ?? '';
     .btn-caas:hover  { background-color: var(--caas-orange-dk); color: white; }
     .btn-caas:active { transform: scale(0.97); }
 
-    /* Animaciones custom */
+    /* Animaciones personalizadas */
     @keyframes fadeInUp {
         from { opacity: 0; transform: translateY(18px); }
         to   { opacity: 1; transform: translateY(0); }
@@ -96,10 +91,23 @@ $extraHead = $extraHead ?? '';
         background-size: 200% 100%;
     }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* Ocultar barra de Google Translate */
+    .goog-te-banner-frame,
+    .goog-te-balloon-frame,
+    #goog-gt-tt,
+    .goog-te-spinner-pos { display: none !important; }
+    body { top: 0 !important; position: static !important; }
+    #google_translate_element { display: none !important; }
+    .goog-text-highlight { background: none !important; box-shadow: none !important; }
 </style>
 
 <?= $extraHead ?>
 
-<!-- ── Traducciones + tema (carga síncrona antes del body) ───────── -->
+<!-- Div oculto requerido por Google Translate -->
+<div id="google_translate_element" style="display:none;"></div>
+
+<!-- ── Sistema de idiomas C.A.A.S. ─────────────────────────────── -->
 <script src="lang.js"></script>
 <script src="theme.js"></script>
+<script src="translate.js"></script>

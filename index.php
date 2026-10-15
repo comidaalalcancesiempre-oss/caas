@@ -73,8 +73,8 @@ require_once 'head.php';
 
         <!-- Logo -->
         <a href="index.php" class="flex items-center gap-2 flex-shrink-0">
-            <span class="bg-orange-500 text-white font-black text-xl px-3 py-1.5 rounded-xl tracking-wide">C.A.A.S.</span>
-            <span class="hidden lg:inline text-xs font-semibold text-gray-400 dark:text-gray-500">Uruguay</span>
+            <span class="bg-orange-500 text-white font-black text-xl px-3 py-1.5 rounded-xl tracking-wide notranslate">C.A.A.S.</span>
+            <span class="hidden lg:inline text-xs font-semibold text-gray-400 dark:text-gray-500 notranslate">Uruguay</span>
         </a>
 
         <!-- Buscador rápido centrado (desktop) -->
@@ -108,6 +108,34 @@ require_once 'head.php';
                     title="Cambiar tema">
                 <i data-lucide="moon" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i>
             </button>
+
+            <!-- Selector de idioma rápido en navbar -->
+            <div class="relative" id="langDropWrap">
+                <button id="btnLangNav"
+                        class="flex items-center gap-1.5 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition text-sm"
+                        title="Idioma">
+                    <span id="navLangIndicator" class="text-lg">🇺🇾</span>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-400"></i>
+                </button>
+                <div id="langDropMenu"
+                     class="hidden absolute right-0 top-full mt-2 bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-2xl shadow-xl z-50 p-2 grid grid-cols-2 gap-1 w-44 animate__animated animate__fadeIn animate__faster">
+                    <?php
+                    $langs = [
+                        'es'=>['🇺🇾','ES'], 'en'=>['🇺🇸','EN'], 'pt'=>['🇧🇷','PT'],
+                        'fr'=>['🇫🇷','FR'], 'it'=>['🇮🇹','IT'], 'de'=>['🇩🇪','DE'],
+                        'zh'=>['🇨🇳','中文'], 'ja'=>['🇯🇵','JA'],
+                    ];
+                    foreach ($langs as $code => [$bandera, $label]):
+                    ?>
+                    <button onclick="switchGoogleLang('<?= $code ?>'); document.getElementById('navLangIndicator').textContent='<?= $bandera ?>'; document.getElementById('langDropMenu').classList.add('hidden');"
+                            data-lang-btn="<?= $code ?>"
+                            class="lang-btn flex items-center gap-2 px-2 py-1.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-950 transition notranslate">
+                        <span><?= $bandera ?></span> <?= $label ?>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
             <a href="ajustes.php" class="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition" title="Ajustes">
                 <i data-lucide="settings" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i>
             </a>
@@ -377,7 +405,7 @@ require_once 'head.php';
                         <div class="flex items-start justify-between gap-2">
                             <div class="min-w-0">
                                 <a href="local.php?id=<?= (int)$emp['id_empresa'] ?>"
-                                   class="text-lg font-bold text-gray-900 dark:text-white hover:text-orange-500 transition block truncate">
+                                   class="text-lg font-bold text-gray-900 dark:text-white hover:text-orange-500 transition block truncate notranslate">
                                     <?= e($emp['nombre']) ?>
                                 </a>
                                 <div class="flex flex-wrap items-center gap-2 mt-1">
@@ -433,7 +461,7 @@ require_once 'head.php';
                                  loading="lazy">
                         </div>
                         <div class="p-3 flex flex-col flex-1">
-                            <h3 class="font-bold text-sm text-gray-800 dark:text-gray-100 leading-tight line-clamp-1"><?= e($p['nombre']) ?></h3>
+                            <h3 class="font-bold text-sm text-gray-800 dark:text-gray-100 leading-tight line-clamp-1 notranslate"><?= e($p['nombre']) ?></h3>
                             <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5 flex-1"><?= e($p['descripcion'] ?? '') ?></p>
                             <div class="flex justify-between items-center mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
                                 <span class="text-base font-black text-gray-900 dark:text-white">$<?= number_format((float)$p['precio'], 2) ?></span>
@@ -608,8 +636,24 @@ if (btnPerfil) {
     btnPerfil.addEventListener('click', e => { e.stopPropagation(); dropdownPerfil.classList.toggle('hidden'); });
     document.addEventListener('click', () => dropdownPerfil?.classList.add('hidden'));
 }
-</script>
+// ── Dropdown idioma navbar ───────────────────────────────────────
+const btnLangNav   = document.getElementById('btnLangNav');
+const langDropMenu = document.getElementById('langDropMenu');
+if (btnLangNav) {
+    btnLangNav.addEventListener('click', e => {
+        e.stopPropagation();
+        langDropMenu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', () => langDropMenu?.classList.add('hidden'));
+}
 
+// Inicializar bandera del navbar con el idioma guardado
+document.addEventListener('DOMContentLoaded', () => {
+    const banderas = { es:'🇺🇾', en:'🇺🇸', pt:'🇧🇷', fr:'🇫🇷', it:'🇮🇹', de:'🇩🇪', zh:'🇨🇳', ja:'🇯🇵' };
+    const ind = document.getElementById('navLangIndicator');
+    if (ind) ind.textContent = banderas[getLang()] || '🌐';
+});
+</script>
 <?php require_once 'foot.php'; ?>
 </body>
 </html>

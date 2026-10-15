@@ -82,52 +82,52 @@
         <div class="grid grid-cols-1 gap-3" id="langGrid">
 
             <!-- Español -->
-            <button onclick="elegirIdioma('es')" data-lang="es"
+            <button onclick="switchGoogleLang('es')" data-lang-btn="es"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇺🇾</span>
-                <div><p class="font-bold text-sm text-gray-900 dark:text-white">Español</p><p class="text-xs text-gray-400">Español (Uruguay)</p></div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white notranslate">Español</p><p class="text-xs text-gray-400 notranslate">Español (Uruguay)</p></div>
             </button>
             <!-- English -->
-            <button onclick="elegirIdioma('en')" data-lang="en"
+            <button onclick="switchGoogleLang('en')" data-lang-btn="en"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇺🇸</span>
-                <div><p class="font-bold text-sm text-gray-900 dark:text-white">English</p><p class="text-xs text-gray-400">English (US)</p></div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white notranslate">English</p><p class="text-xs text-gray-400 notranslate">English (US)</p></div>
             </button>
             <!-- Português -->
-            <button onclick="elegirIdioma('pt')" data-lang="pt"
+            <button onclick="switchGoogleLang('pt')" data-lang-btn="pt"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇧🇷</span>
-                <div><p class="font-bold text-sm text-gray-900 dark:text-white">Português</p><p class="text-xs text-gray-400">Português (Brasil)</p></div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white notranslate">Português</p><p class="text-xs text-gray-400 notranslate">Português (Brasil)</p></div>
             </button>
             <!-- Français -->
-            <button onclick="elegirIdioma('fr')" data-lang="fr"
+            <button onclick="switchGoogleLang('fr')" data-lang-btn="fr"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇫🇷</span>
-                <div><p class="font-bold text-sm text-gray-900 dark:text-white">Français</p><p class="text-xs text-gray-400">Français</p></div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white notranslate">Français</p><p class="text-xs text-gray-400 notranslate">Français</p></div>
             </button>
             <!-- Italiano -->
-            <button onclick="elegirIdioma('it')" data-lang="it"
+            <button onclick="switchGoogleLang('it')" data-lang-btn="it"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇮🇹</span>
-                <div><p class="font-bold text-sm text-gray-900 dark:text-white">Italiano</p><p class="text-xs text-gray-400">Italiano</p></div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white notranslate">Italiano</p><p class="text-xs text-gray-400 notranslate">Italiano</p></div>
             </button>
             <!-- Deutsch -->
-            <button onclick="elegirIdioma('de')" data-lang="de"
+            <button onclick="switchGoogleLang('de')" data-lang-btn="de"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇩🇪</span>
-                <div><p class="font-bold text-sm text-gray-900 dark:text-white">Deutsch</p><p class="text-xs text-gray-400">Deutsch</p></div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white notranslate">Deutsch</p><p class="text-xs text-gray-400 notranslate">Deutsch</p></div>
             </button>
             <!-- 中文 -->
-            <button onclick="elegirIdioma('zh')" data-lang="zh"
+            <button onclick="switchGoogleLang('zh')" data-lang-btn="zh"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇨🇳</span>
-                <div><p class="font-bold text-sm text-gray-900 dark:text-white">中文</p><p class="text-xs text-gray-400">Chino Simplificado</p></div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white notranslate">中文</p><p class="text-xs text-gray-400 notranslate">Chino Simplificado</p></div>
             </button>
             <!-- 日本語 -->
-            <button onclick="elegirIdioma('ja')" data-lang="ja"
+            <button onclick="switchGoogleLang('ja')" data-lang-btn="ja"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇯🇵</span>
-                <div><p class="font-bold text-sm text-gray-900 dark:text-white">日本語</p><p class="text-xs text-gray-400">Japonés</p></div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white notranslate">日本語</p><p class="text-xs text-gray-400 notranslate">Japonés</p></div>
             </button>
 
         </div>
@@ -143,18 +143,19 @@
 
 <script>
 function elegirIdioma(lang) {
-    setLang(lang);
-    marcarLangActivo(lang);
+    // Delegar al nuevo motor de traducción global
+    switchGoogleLang(lang);
+    marcarIdiomaActivo();
     mostrarToast();
 }
 
 function marcarLangActivo(lang) {
     document.querySelectorAll('.lang-btn').forEach(btn => {
-        const activo = btn.getAttribute('data-lang') === lang;
+        const activo = btn.getAttribute('data-lang-btn') === lang;
         btn.classList.toggle('border-orange-500', activo);
-        btn.classList.toggle('bg-orange-50',      activo);
+        btn.classList.toggle('bg-orange-50',       activo);
         btn.classList.toggle('dark:bg-orange-950', activo);
-        btn.classList.toggle('border-gray-200',   !activo);
+        btn.classList.toggle('border-gray-200',    !activo);
         btn.classList.toggle('dark:border-gray-700', !activo);
     });
 }
@@ -162,13 +163,9 @@ function marcarLangActivo(lang) {
 function mostrarToast() {
     const toast = document.getElementById('toast');
     toast.classList.remove('hidden');
-    toast.classList.add('opacity-100');
-    setTimeout(() => {
-        toast.classList.add('hidden');
-    }, 2500);
+    setTimeout(() => toast.classList.add('hidden'), 2500);
 }
 
-// Inicializar estado visual al cargar
 document.addEventListener('DOMContentLoaded', () => {
     marcarLangActivo(getLang());
     actualizarBotonesTema(getTema());
