@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once 'config.php';
 
 if (!isset($_SESSION['id_cliente'])) {
@@ -40,18 +40,7 @@ $iconos = [
 <!DOCTYPE html>
 <html lang="es" class="">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis Pedidos - C.A.A.S.</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config={darkMode:'class'}</script>
-    <script>const _t=localStorage.getItem('caas_tema')||'light';if(_t==='dark')document.documentElement.classList.add('dark');</script>
-    <script src="lang.js"></script><script src="theme.js"></script>
-    <style>
-        @keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-        .fade-in{animation:fadeInUp .35s ease both}
-        .fade-in-delay{animation:fadeInUp .35s ease both .1s;opacity:0;animation-fill-mode:forwards}
-    </style>
+    <?php $pageTitle = 'Mis Pedidos - C.A.A.S.'; require_once 'head.php'; ?>
 </head>
 <body class="bg-slate-100 dark:bg-gray-950 min-h-screen transition-colors duration-300">
 

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once 'config.php';
 require_once 'mailer.php';
 
@@ -61,14 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="es" class="">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recuperar Contraseña - C.A.A.S.</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config={darkMode:'class'}</script>
-    <script>const _t=localStorage.getItem('caas_tema')||'light';if(_t==='dark')document.documentElement.classList.add('dark');</script>
-    <script src="lang.js"></script><script src="theme.js"></script>
-    <style>@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation:fadeInUp .4s ease both}</style>
+    <?php $pageTitle = 'Recuperar Contraseña - C.A.A.S.'; require_once 'head.php'; ?>
 </head>
 <body class="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-gray-950 dark:to-gray-900 min-h-screen flex items-center justify-center p-4">
 

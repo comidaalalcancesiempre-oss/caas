@@ -1,14 +1,17 @@
 <?php
 require_once 'config.php';
+require_once 'uruguay.php';
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $tipo     = $_POST['tipo']    ?? '';
-    $nombre   = trim(filter_input(INPUT_POST, 'nombre',   FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
-    $email    = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-    $telefono = trim(filter_input(INPUT_POST, 'telefono', FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
-    $password = $_POST['password'] ?? '';
+    $tipo         = $_POST['tipo']          ?? '';
+    $nombre       = trim(filter_input(INPUT_POST, 'nombre',       FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
+    $email        = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+    $telefono     = trim(filter_input(INPUT_POST, 'telefono',     FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
+    $departamento = trim(filter_input(INPUT_POST, 'departamento', FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
+    $localidad    = trim(filter_input(INPUT_POST, 'localidad',    FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
+    $password     = $_POST['password'] ?? '';
 
     if (!in_array($tipo, ['CLIENTE', 'EMPRESA'], true)) {
         $error = 'Seleccioná un tipo de usuario.';
@@ -32,8 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
         try {
             $conn->beginTransaction();
-            $conn->prepare("INSERT INTO usuario (email, telefono, tipo) VALUES (?, ?, ?)")
-                 ->execute([strtolower($email), $telefono, $tipo]);
+            // Guardar departamento y localidad en usuario
+            $conn->prepare("INSERT INTO usuario (email, telefono, tipo, departamento, localidad) VALUES (?, ?, ?, ?, ?)")
+                 ->execute([strtolower($email), $telefono, $tipo, $departamento, $localidad]);
             $id_usuario = $conn->lastInsertId();
 
             if ($tipo === 'CLIENTE') {
@@ -45,8 +49,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $categoria = trim(filter_input(INPUT_POST, 'categoria', FILTER_SANITIZE_SPECIAL_CHARS) ?? 'General');
                 $direccion = trim(filter_input(INPUT_POST, 'direccion', FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
                 $horarios  = trim(filter_input(INPUT_POST, 'horarios',  FILTER_SANITIZE_SPECIAL_CHARS) ?? '');
-                $conn->prepare("INSERT INTO empresa (id_usuario, nombre, contrasena, categoria, direccion, horarios, estado_aprobacion) VALUES (?,?,?,?,?,?,'PENDIENTE')")
-                     ->execute([$id_usuario, $nombre, $hash, $categoria, $direccion, $horarios]);
+                // La empresa también lleva departamento y localidad propios
+                $conn->prepare(
+                    "INSERT INTO empresa (id_usuario, nombre, contrasena, categoria, direccion, horarios, departamento, localidad, estado_aprobacion)
+                     VALUES (?,?,?,?,?,?,?,?,'PENDIENTE')"
+                )->execute([$id_usuario, $nombre, $hash, $categoria, $direccion, $horarios, $departamento, $localidad]);
                 $id_empresa = $conn->lastInsertId();
                 $conn->prepare("INSERT INTO menu (id_empresa, nombre) VALUES (?, 'Menú Principal')")
                      ->execute([$id_empresa]);
@@ -65,17 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="es" class="">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro - C.A.A.S.</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { darkMode: 'class' }</script>
-    <script>
-        const _t = localStorage.getItem('caas_tema') || 'light';
-        if (_t === 'dark') document.documentElement.classList.add('dark');
-    </script>
-    <script src="lang.js"></script>
-    <script src="theme.js"></script>
+<?php $pageTitle = 'Registro - C.A.A.S.'; require_once 'head.php'; ?>
 </head>
 <body class="bg-slate-100 dark:bg-gray-950 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
 
@@ -136,6 +133,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                data-i18n-ph="reg_tel_ph"
                placeholder="Teléfono / WhatsApp *"
                class="w-full p-3 border dark:border-gray-700 rounded-xl text-sm bg-gray-50 dark:bg-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-400">
+
+        <!-- Departamento y Localidad — obligatorios para todos -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">Departamento *</label>
+                <select name="departamento" id="selectDepto" required onchange="cargarLocalidades()"
+                        class="w-full p-3 border dark:border-gray-700 rounded-xl text-sm bg-gray-50 dark:bg-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-400">
+                    <?= optsDepartamentos($_POST['departamento'] ?? '') ?>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">Localidad / Ciudad *</label>
+                <select name="localidad" id="selectLocalidad" required
+                        class="w-full p-3 border dark:border-gray-700 rounded-xl text-sm bg-gray-50 dark:bg-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-400">
+                    <?php if (!empty($_POST['departamento'])): ?>
+                        <?= optsLocalidades($_POST['departamento'], $_POST['localidad'] ?? '') ?>
+                    <?php else: ?>
+                        <option value="">Primero elegí un departamento</option>
+                    <?php endif; ?>
+                </select>
+            </div>
+        </div>
 
         <div class="relative">
             <input type="password" id="passInput" name="password" required
@@ -201,6 +220,21 @@ function mostrarCampos() {
     document.getElementById('avisoEmp').classList.toggle('hidden',      tipo !== 'EMPRESA');
 }
 window.addEventListener('DOMContentLoaded', mostrarCampos);
+
+// Select encadenado: departamento → localidades vía AJAX
+async function cargarLocalidades() {
+    const depto = document.getElementById('selectDepto').value;
+    const sel   = document.getElementById('selectLocalidad');
+    sel.innerHTML = '<option value="">Cargando...</option>';
+    if (!depto) { sel.innerHTML = '<option value="">Primero elegí un departamento</option>'; return; }
+    try {
+        const r = await fetch(`get_localidades.php?departamento=${encodeURIComponent(depto)}`);
+        const localidades = await r.json();
+        sel.innerHTML = '<option value="">— Seleccioná —</option>' +
+            localidades.map(l => `<option value="${l}">${l}</option>`).join('');
+    } catch { sel.innerHTML = '<option value="">Error al cargar</option>'; }
+}
 </script>
+<?php require_once 'foot.php'; ?>
 </body>
 </html>

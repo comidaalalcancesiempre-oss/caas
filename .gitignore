@@ -6,6 +6,13 @@
 logs/
 *.log
 
+# Variables de entorno con credenciales — NUNCA subir a Git
+.env
+
+# Dependencias de Composer — se regeneran con: php composer.phar install
+/vendor/
+composer.phar
+
 # Archivos de prueba y temporales
 test_email.php
 debug_bd.php

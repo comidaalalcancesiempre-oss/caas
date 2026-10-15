@@ -6,11 +6,12 @@ require_once __DIR__ . '/phpmailer/PHPMailer.php';
 require_once __DIR__ . '/phpmailer/SMTP.php';
 require_once __DIR__ . '/phpmailer/Exception.php';
 
-// ── Credenciales Gmail ─────────────────────────────────────────────
-define('GMAIL_USER',         'comidaallacancesiempre@gmail.com');
-define('GMAIL_APP_PASSWORD', 'ghnxqxanrfnbtkuf');
-define('ADMIN_EMAIL',        'comidaallacancesiempre@gmail.com');
-define('SITE_NAME',          'C.A.A.S. - Comida Al Alcance Siempre');
+// ── Credenciales Gmail — vienen del .env (no del código) ──────────
+// phpdotenv las cargó en $_ENV cuando se incluyó config.php
+define('GMAIL_USER',         $_ENV['GMAIL_USER']         ?? '');
+define('GMAIL_APP_PASSWORD', $_ENV['GMAIL_APP_PASSWORD'] ?? '');
+define('ADMIN_EMAIL',        $_ENV['ADMIN_EMAIL']        ?? $_ENV['GMAIL_USER'] ?? '');
+define('SITE_NAME',          $_ENV['APP_NAME']           ?? 'C.A.A.S. - Comida Al Alcance Siempre');
 
 /**
  * Función base para enviar cualquier email

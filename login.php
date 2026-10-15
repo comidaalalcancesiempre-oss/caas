@@ -93,21 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="es" class="">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión - C.A.A.S.</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { darkMode: 'class' }</script>
-    <script>const _t=localStorage.getItem('caas_tema')||'light';if(_t==='dark')document.documentElement.classList.add('dark');</script>
-    <script src="lang.js"></script>
-    <script src="theme.js"></script>
-    <style>
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in { animation: fadeInUp .4s ease both; }
-    </style>
+<?php $pageTitle = 'Iniciar Sesión - C.A.A.S.'; require_once 'head.php'; ?>
 </head>
 <body class="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-gray-950 dark:to-gray-900 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
 
@@ -222,20 +208,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script>
 // Mostrar barra de fuerza de contraseña
 document.getElementById('passInput')?.addEventListener('input', function() {
-    const bar = document.getElementById('passBar');
+    const bar  = document.getElementById('passBar');
     const wrap = document.getElementById('passStrength');
-    const v = this.value;
+    const v    = this.value;
     if (!v) { wrap.classList.add('hidden'); return; }
     wrap.classList.remove('hidden');
     let score = 0;
-    if (v.length >= 8)  score++;
-    if (/[A-Z]/.test(v)) score++;
-    if (/[0-9]/.test(v)) score++;
+    if (v.length >= 8)          score++;
+    if (/[A-Z]/.test(v))        score++;
+    if (/[0-9]/.test(v))        score++;
     if (/[^A-Za-z0-9]/.test(v)) score++;
     const colors = ['bg-red-400','bg-orange-400','bg-yellow-400','bg-green-400'];
     const widths = ['w-1/4','w-2/4','w-3/4','w-full'];
     bar.className = `h-full rounded-full transition-all duration-300 ${colors[score-1]||'bg-red-400'} ${widths[score-1]||'w-1/4'}`;
 });
+
+<?php require_once 'foot.php'; ?>
 </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once 'config.php';
 
 if (!isset($_SESSION['tipo']) || $_SESSION['tipo'] !== 'ADMIN') {
@@ -91,11 +91,7 @@ $stats = $conn->query(
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Admin - C.A.A.S.</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
+    <?php $pageTitle = 'Panel Admin - C.A.A.S.'; require_once 'head.php'; ?>
 <body class="bg-slate-100 text-gray-800">
 
 <nav class="bg-gray-900 text-white px-4 sm:px-6 h-14 flex items-center justify-between sticky top-0 z-40">

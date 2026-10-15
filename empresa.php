@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once 'config.php';
 
 if (!isset($_SESSION['tipo']) || $_SESSION['tipo'] !== 'EMPRESA') {
@@ -73,18 +73,7 @@ $nombre_empresa = e($_SESSION['nombre'] ?? '');
 <!DOCTYPE html>
 <html lang="es" class="">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Empresa - <?= $nombre_empresa ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { darkMode: 'class' }</script>
-    <script>
-        const _t = localStorage.getItem('caas_tema') || 'light';
-        if (_t === 'dark') document.documentElement.classList.add('dark');
-    </script>
-    <script src="lang.js"></script>
-    <script src="theme.js"></script>
-</head>
+    <?php $pageTitle = 'Panel Empresa - C.A.A.S.'; require_once 'head.php'; ?>
 <body class="bg-slate-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 transition-colors duration-300">
 
 <!-- ── NAVBAR ─────────────────────────────────────────────────────── -->
@@ -102,6 +91,30 @@ $nombre_empresa = e($_SESSION['nombre'] ?? '');
 
 <div class="max-w-6xl mx-auto p-4 sm:p-6 space-y-8">
 
+    <!-- ── CONTADORES EN VIVO ─────────────────────────────────── -->
+    <section class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <?php
+        $stats = $conn->prepare(
+            "SELECT pedidos_totales, en_preparacion, en_camino, entregados
+             FROM empresa_stats WHERE id_empresa = ?"
+        );
+        $stats->execute([$id_empresa]);
+        $st = $stats->fetch() ?: ['pedidos_totales'=>0,'en_preparacion'=>0,'en_camino'=>0,'entregados'=>0];
+        $contadores = [
+            ['📦', 'Pedidos Totales',    $st['pedidos_totales'], 'bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300'],
+            ['👨‍🍳', 'En Preparación',   $st['en_preparacion'],  'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'],
+            ['🛵', 'En Camino',          $st['en_camino'],        'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300'],
+            ['✅', 'Entregados',          $st['entregados'],       'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'],
+        ];
+        foreach ($contadores as [$ico, $label, $val, $cls]):
+        ?>
+        <div class="<?= $cls ?> rounded-2xl p-4 text-center border border-current/10 fade-in" id="stat-<?= strtolower(str_replace(' ', '-', $label)) ?>">
+            <p class="text-3xl font-black"><?= (int)$val ?></p>
+            <p class="text-xs font-bold mt-1 opacity-80"><?= $ico ?> <?= $label ?></p>
+        </div>
+        <?php endforeach; ?>
+    </section>
+
     <!-- ── PEDIDOS EN VIVO ─────────────────────────────────────── -->
     <section class="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-800 p-5 sm:p-6 shadow-sm">
         <div class="flex items-center justify-between mb-4">
@@ -109,7 +122,7 @@ $nombre_empresa = e($_SESSION['nombre'] ?? '');
                 <h2 class="font-bold text-lg text-gray-800 dark:text-white" data-i18n="emp_orders">Pedidos Recibidos</h2>
                 <span class="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-300 font-bold px-2 py-0.5 rounded-full" data-i18n="emp_live">En Vivo</span>
             </div>
-            <span class="relative flex h-2.5 w-2.5">
+            <span class="relative flex h-2.5 w-2.5" title="Actualización automática">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
             </span>
@@ -207,8 +220,24 @@ async function cambiarEstado(id, estado) {
     fd.append('accion','cambiar_estado'); fd.append('id_pedido',id); fd.append('estado',estado);
     const r = await fetch('obtener_pedidos.php',{method:'POST',body:fd});
     const d = await r.json();
-    if (d.status === 'success') cargarPedidos();
+    if (d.status === 'success') {
+        cargarPedidos();
+        actualizarStats();
+    }
     else alert('No se pudo actualizar.');
+}
+
+async function actualizarStats() {
+    try {
+        const r = await fetch('obtener_pedidos.php');
+        const d = await r.json();
+        if (d.stats) {
+            document.querySelector('#stat-pedidos-totales p:first-child').textContent  = d.stats.pedidos_totales || 0;
+            document.querySelector('#stat-en-preparación p:first-child').textContent   = d.stats.en_preparacion  || 0;
+            document.querySelector('#stat-en-camino p:first-child').textContent        = d.stats.en_camino       || 0;
+            document.querySelector('#stat-entregados p:first-child').textContent       = d.stats.entregados      || 0;
+        }
+    } catch(e) { console.error(e); }
 }
 
 async function cargarPedidos() {
@@ -249,5 +278,6 @@ async function cargarPedidos() {
 cargarPedidos();
 setInterval(cargarPedidos, 8000);
 </script>
+<?php require_once 'foot.php'; ?>
 </body>
 </html>

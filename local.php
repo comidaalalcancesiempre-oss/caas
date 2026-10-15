@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once 'config.php';
 
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
@@ -25,13 +25,8 @@ $lng = (float)($emp['longitud'] ?? -56.1645);
 <!DOCTYPE html>
 <html lang="es" class="">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($emp['nombre']) ?> - C.A.A.S.</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config={darkMode:'class'}</script>
-    <script>const _t=localStorage.getItem('caas_tema')||'light';if(_t==='dark')document.documentElement.classList.add('dark');</script>
-    <!-- Leaflet CSS -->
+    <?php $pageTitle = 'Local - C.A.A.S.'; $extraHead = '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>';  require_once 'head.php'; ?>
+<!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <script src="lang.js"></script><script src="theme.js"></script>
     <style>

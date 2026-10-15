@@ -1,13 +1,9 @@
-<?php require_once 'config.php'; ?>
+﻿<?php require_once 'config.php'; ?>
 <!DOCTYPE html>
 <html lang="es" class="">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ajustes - C.A.A.S.</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { darkMode: 'class' }</script>
-    <!-- Cargar tema ANTES del body para evitar flash -->
+    <?php $pageTitle = 'Ajustes - C.A.A.S.'; require_once 'head.php'; ?>
+<!-- Cargar tema ANTES del body para evitar flash -->
     <script>
         const _t = localStorage.getItem('caas_tema') || 'light';
         if (_t === 'dark') document.documentElement.classList.add('dark');
@@ -89,50 +85,49 @@
             <button onclick="elegirIdioma('es')" data-lang="es"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇺🇾</span>
-                <div>
-                    <p class="font-bold text-sm text-gray-900 dark:text-white">Español</p>
-                    <p class="text-xs text-gray-400">Español (Uruguay)</p>
-                </div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white">Español</p><p class="text-xs text-gray-400">Español (Uruguay)</p></div>
             </button>
-
             <!-- English -->
             <button onclick="elegirIdioma('en')" data-lang="en"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇺🇸</span>
-                <div>
-                    <p class="font-bold text-sm text-gray-900 dark:text-white">English</p>
-                    <p class="text-xs text-gray-400">English (US)</p>
-                </div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white">English</p><p class="text-xs text-gray-400">English (US)</p></div>
             </button>
-
-            <!-- Português Brasil -->
+            <!-- Português -->
             <button onclick="elegirIdioma('pt')" data-lang="pt"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇧🇷</span>
-                <div>
-                    <p class="font-bold text-sm text-gray-900 dark:text-white">Português</p>
-                    <p class="text-xs text-gray-400">Português (Brasil)</p>
-                </div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white">Português</p><p class="text-xs text-gray-400">Português (Brasil)</p></div>
             </button>
-
+            <!-- Français -->
+            <button onclick="elegirIdioma('fr')" data-lang="fr"
+                    class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
+                <span class="text-3xl">🇫🇷</span>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white">Français</p><p class="text-xs text-gray-400">Français</p></div>
+            </button>
+            <!-- Italiano -->
+            <button onclick="elegirIdioma('it')" data-lang="it"
+                    class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
+                <span class="text-3xl">🇮🇹</span>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white">Italiano</p><p class="text-xs text-gray-400">Italiano</p></div>
+            </button>
+            <!-- Deutsch -->
+            <button onclick="elegirIdioma('de')" data-lang="de"
+                    class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
+                <span class="text-3xl">🇩🇪</span>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white">Deutsch</p><p class="text-xs text-gray-400">Deutsch</p></div>
+            </button>
             <!-- 中文 -->
             <button onclick="elegirIdioma('zh')" data-lang="zh"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇨🇳</span>
-                <div>
-                    <p class="font-bold text-sm text-gray-900 dark:text-white">中文</p>
-                    <p class="text-xs text-gray-400">Chino Simplificado</p>
-                </div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white">中文</p><p class="text-xs text-gray-400">Chino Simplificado</p></div>
             </button>
-
             <!-- 日本語 -->
             <button onclick="elegirIdioma('ja')" data-lang="ja"
                     class="lang-btn flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-400 transition text-left">
                 <span class="text-3xl">🇯🇵</span>
-                <div>
-                    <p class="font-bold text-sm text-gray-900 dark:text-white">日本語</p>
-                    <p class="text-xs text-gray-400">Japonés</p>
-                </div>
+                <div><p class="font-bold text-sm text-gray-900 dark:text-white">日本語</p><p class="text-xs text-gray-400">Japonés</p></div>
             </button>
 
         </div>

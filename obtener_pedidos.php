@@ -48,7 +48,20 @@ try {
              ORDER BY p.fecha_hora DESC LIMIT 100"
         );
         $s->execute([$_SESSION['id_empresa']]);
+        $pedidos = $s->fetchAll();
+
+        // Stats actualizadas de delivery
+        $stQ = $conn->prepare("SELECT * FROM empresa_stats WHERE id_empresa = ?");
+        $stQ->execute([$_SESSION['id_empresa']]);
+        $statsRow = $stQ->fetch() ?: [];
+
+        echo json_encode([
+            'status' => 'success',
+            'data'   => $pedidos,
+            'stats'  => $statsRow,
+        ], JSON_UNESCAPED_UNICODE);
     } else {
+        // ADMIN — todos los pedidos
         $s = $conn->query(
             "SELECT p.id_pedido, p.detalle, p.costo, p.estado, p.fecha_hora,
                     c.nombre AS nombre_cliente, c.calle, c.num_casa,
@@ -58,8 +71,8 @@ try {
              JOIN   empresa e ON p.id_empresa = e.id_empresa
              ORDER BY p.fecha_hora DESC LIMIT 300"
         );
+        echo json_encode(['status'=>'success','data'=>$s->fetchAll()], JSON_UNESCAPED_UNICODE);
     }
-    echo json_encode(['status'=>'success','data'=>$s->fetchAll()], JSON_UNESCAPED_UNICODE);
 } catch (PDOException $e) {
     error_log('obtener_pedidos: '.$e->getMessage());
     http_response_code(500);
